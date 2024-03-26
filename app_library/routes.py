@@ -222,7 +222,21 @@ def view_book_authors():
         book_authors_list.append({
             'id_book_author': el.id_book_author,
             'id_book': el.id_book,
-            'id_author': el.id_author
+            'id_author': el.id_author,
+            'book': {
+                'title': el.book.title,
+                'year': el.book.year,
+                'total_pages': el.book.total_pages,
+                'id_category': el.book.id_category,
+                'category': {
+                    'name': el.book.category.name,
+                    'description': el.book.category.description
+                }
+            },
+            'author': {
+                'name': el.author.name,
+                'nationality': el.author.nationality
+            }
         })
     return {'book_authors': book_authors_list}
 
@@ -352,7 +366,11 @@ def view_transactions():
                 'id_transaction': el.id_transaction,
                 'id_admin': el.id_admin,
                 'id_member': el.id_member,
-                'borrowing_date': el.borrowing_date
+                'borrowing_date': el.borrowing_date,
+                'users': {
+                    'member': el.member.username,
+                    'admin': el.admin.username
+                }
             })
         return {'transactions': transactions_list}
     else:
@@ -396,7 +414,19 @@ def view_transaction_details():
                 'id_transaction_detail': el.id_transaction_detail,
                 'id_transaction': el.id_transaction,
                 'id_book': el.id_book,
-                'return_date': el.return_date
+                'return_date': el.return_date,
+                'transaction': {
+                    'id_admin': el.transaction.id_admin,
+                    'id_member': el.transaction.id_member,
+                    'borrowing_date': el.transaction.borrowing_date,
+                    'users': {
+                        'member': el.transaction.member.username,
+                        'admin': el.transaction.admin.username
+                    }
+                },
+                'book': {
+                    'title': el.book.title
+                }
             })
         return {'transaction_details': transaction_details_list}
     else:

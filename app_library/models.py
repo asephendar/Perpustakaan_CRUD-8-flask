@@ -34,6 +34,8 @@ class BookAuthors(db.Model):
     id_book_author = db.Column(db.Integer, primary_key=True)
     id_book = db.Column(db.Integer, db.ForeignKey('books.id_book'), nullable=False)
     id_author = db.Column(db.Integer, db.ForeignKey('authors.id_author'), nullable=False)
+    author = db.relationship('Authors', backref=db.backref('book_authors', lazy=True))
+    book = db.relationship('Books', backref=db.backref('book_authors', lazy=True))
 
 class Users(db.Model):
     id_user = db.Column(db.Integer, primary_key=True)
@@ -56,9 +58,14 @@ class Transactions(db.Model):
     id_admin = db.Column(db.Integer, db.ForeignKey('users.id_user'), nullable=False)
     id_member = db.Column(db.Integer, db.ForeignKey('users.id_user'), nullable=False)
     borrowing_date = db.Column(db.Date, nullable=False)
+    member = db.relationship('Users', foreign_keys=id_member, backref=db.backref('transactions_as_member', lazy=True))
+    admin = db.relationship('Users', foreign_keys=id_admin, backref=db.backref('transactions_as_admin', lazy=True))
+
 
 class TransactionDetails(db.Model):
     id_transaction_detail = db.Column(db.Integer, primary_key=True)
     id_transaction = db.Column(db.Integer, db.ForeignKey('transactions.id_transaction'), nullable=False)
     id_book = db.Column(db.Integer, db.ForeignKey('books.id_book'), nullable=False)
     return_date = db.Column(db.Date, nullable=False)
+    transaction = db.relationship('Transactions', backref=db.backref('transaction_details', lazy=True))
+    book = db.relationship('Books', backref=db.backref('transaction_details', lazy=True))
