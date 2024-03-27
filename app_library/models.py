@@ -39,7 +39,7 @@ class BookAuthors(db.Model):
 
 class Users(db.Model):
     id_user = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(255), nullable=False)
+    username = db.Column(db.String(255), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
     user_type = db.Column(db.String(255), nullable=False)
 
