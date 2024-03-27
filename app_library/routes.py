@@ -376,7 +376,35 @@ def view_transactions():
     else:
         return {'message': 'Access denied'}
 
-@app.route('/transactions/add', methods=['POST'])
+@app.route('/transactions/<int:id_transaction>', methods=['PUT'])
+@login_required
+def update_transaction(id_transaction):
+    if current_user.user_type == 'admin':
+        data = Transactions.query.get(id_transaction)
+        if data:
+            data.id_member = request.form['id_member']
+            db.session.commit()
+            return {'message': 'Transaction updated successfully'}
+        else:
+            return {'message': 'Transaction not found'}, 404
+    else:
+        return {'message': 'Access denied'}, 403
+
+@app.route('/transactions/<int:id_transaction>', methods=['DELETE'])
+@login_required
+def delete_transaction(id_transaction):
+    if current_user.user_type == 'admin':
+        data = Transactions.query.get(id_transaction)
+        if data:
+            db.session.delete(data)
+            db.session.commit()
+            return {'message': 'Transaction deleted successfully'}
+        else:
+            return {'message': 'Transaction not found'}, 404
+    else:
+        return {'message': 'Access denied'}, 403
+
+@app.route('/transactions', methods=['POST'])
 @login_required
 def create_transaction():
     if current_user.user_type == 'admin':
@@ -431,6 +459,34 @@ def view_transaction_details():
         return {'transaction_details': transaction_details_list}
     else:
         return {'message': 'Access denied'}
+
+@app.route('/transaction_details/<int:id_transaction_detail>', methods=['PUT'])
+@login_required
+def update_transaction_detail(id_transaction_detail):
+    if current_user.user_type == 'admin':
+        data = TransactionDetails.query.get(id_transaction_detail)
+        if data:
+            data.return_date = request.form['return_date']
+            db.session.commit()
+            return {'message': 'Transaction detail updated successfully'}
+        else:
+            return {'message': 'Transaction detail not found'}, 404
+    else:
+        return {'message': 'Access denied'}, 403
+
+@app.route('/transaction_details/<int:id_transaction_detail>', methods=['DELETE'])
+@login_required
+def delete_transaction_detail(id_transaction_detail):
+    if current_user.user_type == 'admin':
+        data = TransactionDetails.query.get(id_transaction_detail)
+        if data:
+            db.session.delete(data)
+            db.session.commit()
+            return {'message': 'Transaction detail deleted successfully'}
+        else:
+            return {'message': 'Transaction detail not found'}, 404
+    else:
+        return {'message': 'Access denied'}, 403
 
 if __name__ == '__main__':
     app.run(debug=True)
