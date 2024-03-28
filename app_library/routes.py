@@ -1,6 +1,7 @@
 from flask import request
 from flask_login import login_user, logout_user, login_required, current_user
 from app_library.models import app, db, Categories, Books, Authors, BookAuthors, Users, Transactions, TransactionDetails
+from datetime import datetime
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -366,7 +367,7 @@ def view_transactions():
                 'id_transaction': el.id_transaction,
                 'id_admin': el.id_admin,
                 'id_member': el.id_member,
-                'borrowing_date': el.borrowing_date,
+                'borrowing_date': el.borrowing_date.strftime('%Y-%m-%d'),
                 'users': {
                     'member': el.member.username,
                     'admin': el.admin.username
@@ -438,15 +439,27 @@ def view_transaction_details():
         data = TransactionDetails.query.order_by(TransactionDetails.id_transaction_detail.desc()).all()
         transaction_details_list = []
         for el in data:
+            return_date = el.return_date.strftime('%Y-%m-%d')
+            borrowing_date = datetime.strptime(el.transaction.borrowing_date.strftime('%Y-%m-%d'), '%Y-%m-%d')
+            if return_date:
+                current_date = datetime.now().date()
+                if el.days_late is not None:
+                    late_days = el.days_late
+                else:
+                    late_days = (current_date - datetime.strptime(return_date, '%Y-%m-%d').date()).days
+            else:
+                late_days = None
             transaction_details_list.append({
                 'id_transaction_detail': el.id_transaction_detail,
                 'id_transaction': el.id_transaction,
                 'id_book': el.id_book,
-                'return_date': el.return_date,
+                'return_date': return_date,
+                'days_late': el.days_late,
+                'status_late': el.status_late,
                 'transaction': {
                     'id_admin': el.transaction.id_admin,
                     'id_member': el.transaction.id_member,
-                    'borrowing_date': el.transaction.borrowing_date,
+                    'borrowing_date': borrowing_date.strftime('%Y-%m-%d'),
                     'users': {
                         'member': el.transaction.member.username,
                         'admin': el.transaction.admin.username
@@ -454,7 +467,8 @@ def view_transaction_details():
                 },
                 'book': {
                     'title': el.book.title
-                }
+                },
+                'total_late_days': late_days
             })
         return {'transaction_details': transaction_details_list}
     else:
@@ -466,7 +480,9 @@ def update_transaction_detail(id_transaction_detail):
     if current_user.user_type == 'admin':
         data = TransactionDetails.query.get(id_transaction_detail)
         if data:
-            data.return_date = request.form['return_date']
+            data.return_date = request.form['return_date'],
+            data.days_late = request.form['days_late'],
+            data.status_late = request.form['status_late'].lower() == 'true'
             db.session.commit()
             return {'message': 'Transaction detail updated successfully'}
         else:

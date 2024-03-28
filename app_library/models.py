@@ -67,5 +67,7 @@ class TransactionDetails(db.Model):
     id_transaction = db.Column(db.Integer, db.ForeignKey('transactions.id_transaction'), nullable=False)
     id_book = db.Column(db.Integer, db.ForeignKey('books.id_book'), nullable=False)
     return_date = db.Column(db.Date, nullable=False)
+    days_late = db.Column(db.Integer, default=None)
+    status_late = db.Column(db.Boolean, default=False) 
     transaction = db.relationship('Transactions', backref=db.backref('transaction_details', lazy=True))
     book = db.relationship('Books', backref=db.backref('transaction_details', lazy=True))
