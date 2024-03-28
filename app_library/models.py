@@ -61,7 +61,6 @@ class Transactions(db.Model):
     member = db.relationship('Users', foreign_keys=id_member, backref=db.backref('transactions_as_member', lazy=True))
     admin = db.relationship('Users', foreign_keys=id_admin, backref=db.backref('transactions_as_admin', lazy=True))
 
-
 class TransactionDetails(db.Model):
     id_transaction_detail = db.Column(db.Integer, primary_key=True)
     id_transaction = db.Column(db.Integer, db.ForeignKey('transactions.id_transaction'), nullable=False)
