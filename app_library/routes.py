@@ -2,6 +2,7 @@ from flask import request
 from flask_login import login_user, logout_user, login_required, current_user
 from app_library.models import app, db, Categories, Books, Authors, BookAuthors, Users, Transactions, TransactionDetails
 from datetime import datetime
+from werkzeug.security import generate_password_hash
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -306,7 +307,7 @@ def create_user():
     if current_user.user_type == 'admin':
         user = Users(
             username=request.form['username'],
-            password=request.form['password'],
+            password=generate_password_hash(request.form['password']),
             user_type=request.form['user_type']
         )
         db.session.add(user)
@@ -320,7 +321,7 @@ def create_user():
 def create_user_member():
     user = Users(
         username=request.form['username'],
-        password=request.form['password'],
+        password=generate_password_hash(request.form['password']),
         user_type='member'
     )
     db.session.add(user)
@@ -335,6 +336,7 @@ def update_user(id_user):
         if data:
             data.username = request.form['username']
             data.user_type = request.form['user_type']
+            data.password = generate_password_hash(request.form['password'])
             db.session.commit()
             return {'message': 'User updated successfully'}
         else:
