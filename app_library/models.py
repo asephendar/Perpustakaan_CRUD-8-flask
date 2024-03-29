@@ -15,6 +15,7 @@ class Categories(db.Model):
     id_category = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
+    book=db.relationship('Books', backref='category', lazy=True)
 
 class Books(db.Model):
     id_book = db.Column(db.Integer, primary_key=True)
@@ -22,20 +23,20 @@ class Books(db.Model):
     year = db.Column(db.Integer, nullable=False)
     total_pages = db.Column(db.Integer, nullable=False)
     id_category = db.Column(db.Integer, db.ForeignKey('categories.id_category'), nullable=False)
-    category = db.relationship('Categories', backref=db.backref('books', lazy=True))
+    book_author=db.relationship('BookAuthors', backref='book', lazy=True)
+    transaction_detail=db.relationship('TransactionDetails', backref='book', lazy=True)
 
 class Authors(db.Model):
     id_author = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     nationality = db.Column(db.String(255), nullable=False)
     year_birth = db.Column(db.Integer, nullable=False)
+    book_author=db.relationship('BookAuthors', backref='author', lazy=True)
 
 class BookAuthors(db.Model):
     id_book_author = db.Column(db.Integer, primary_key=True)
     id_book = db.Column(db.Integer, db.ForeignKey('books.id_book'), nullable=False)
     id_author = db.Column(db.Integer, db.ForeignKey('authors.id_author'), nullable=False)
-    author = db.relationship('Authors', backref=db.backref('book_authors', lazy=True))
-    book = db.relationship('Books', backref=db.backref('book_authors', lazy=True))
 
 class Users(db.Model):
     id_user = db.Column(db.Integer, primary_key=True)
@@ -46,6 +47,9 @@ class Users(db.Model):
     __table_args__ = (
         CheckConstraint("user_type IN ('admin', 'member')", name='user_type_check'),
     )
+    transaction_member=db.relationship('Transactions', foreign_keys='Transactions.id_member',  backref='member', lazy=True)
+    transaction_admin=db.relationship('Transactions', foreign_keys='Transactions.id_admin', backref='admin', lazy=True)
+    
     def is_active(self):
         return True
     def get_id(self):
@@ -58,8 +62,7 @@ class Transactions(db.Model):
     id_admin = db.Column(db.Integer, db.ForeignKey('users.id_user'), nullable=False)
     id_member = db.Column(db.Integer, db.ForeignKey('users.id_user'), nullable=False)
     borrowing_date = db.Column(db.Date, nullable=False)
-    member = db.relationship('Users', foreign_keys=id_member, backref=db.backref('transactions_as_member', lazy=True))
-    admin = db.relationship('Users', foreign_keys=id_admin, backref=db.backref('transactions_as_admin', lazy=True))
+    transaction_detail=db.relationship('TransactionDetails', backref='transaction', lazy=True)
 
 class TransactionDetails(db.Model):
     id_transaction_detail = db.Column(db.Integer, primary_key=True)
@@ -68,5 +71,3 @@ class TransactionDetails(db.Model):
     return_date = db.Column(db.Date, nullable=False)
     days_late = db.Column(db.Integer, default=None)
     status_late = db.Column(db.Boolean, default=False) 
-    transaction = db.relationship('Transactions', backref=db.backref('transaction_details', lazy=True))
-    book = db.relationship('Books', backref=db.backref('transaction_details', lazy=True))

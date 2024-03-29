@@ -96,6 +96,10 @@ def view_books():
     data = Books.query.order_by(Books.id_book.desc()).all()
     books_list = []
     for el in data:
+        book_authors = []
+        for author in el.book_author:
+            book_authors.append({'name': author.author.name})
+            
         books_list.append({
             'id_book': el.id_book,
             'title': el.title,
@@ -105,11 +109,12 @@ def view_books():
             'category': {
                 'name': el.category.name,
                 'description': el.category.description
-            }
+            },
+            'authors': book_authors,
         })
     return {'books': books_list}
 
-@app.route('/books', methods=['POST'])
+@app.route('/book', methods=['POST'])
 @login_required
 def create_book():
     if current_user.user_type == 'admin':
@@ -124,6 +129,40 @@ def create_book():
         return {'message': 'Book created successfully'}, 201
     else:
         return {'message': 'Access denied'}, 403
+
+@app.route('/books', methods=['POST'])
+@login_required
+def create_book__with_authors():
+    if current_user.user_type == 'admin':
+        data = request.json
+        book = Books(
+            title=data['title'],
+            year=data['year'],
+            total_pages=data['total_pages'],
+            id_category=data['id_category']
+        )
+        db.session.add(book)
+        db.session.commit()
+        
+        for author_data in data['authors']:
+            author = Authors(
+                name=author_data['name'],
+                nationality=author_data['nationality'],
+                year_birth=author_data['year_birth']
+            )
+            db.session.add(author)
+            db.session.commit()
+            
+            book_author = BookAuthors(
+                id_book=book.id_book,
+                id_author=author.id_author
+            )
+            db.session.add(book_author)
+        db.session.commit()
+        
+        return {'message': 'Book created successfully'}, 201
+    else:
+        return {'message': 'Access denied'}
 
 @app.route('/books/<int:id_book>', methods=['PUT'])
 @login_required
@@ -170,7 +209,7 @@ def view_authors():
         })
     return {'authors': authors_list}
 
-@app.route('/authors', methods=['POST'])
+@app.route('/author', methods=['POST'])
 @login_required
 def create_author():
     if current_user.user_type == 'admin':
@@ -184,6 +223,41 @@ def create_author():
         return {'message': 'Author created successfully'}, 201
     else:
         return {'message': 'Access denied'}, 403
+
+@app.route('/authors', methods=['POST'])
+@login_required
+def create_author_with_books():
+    if current_user.user_type == 'admin':
+        data = request.json
+
+        author = Authors(
+            name=data['name'],
+            nationality=data['nationality'],
+            year_birth=data['year_birth']
+        )
+        db.session.add(author)
+        db.session.commit()
+
+        for book_data in data['books']:
+            book = Books(
+                title=book_data['title'],
+                year=book_data['year'],
+                total_pages=book_data['total_pages'],
+                id_category=book_data['id_category']
+            )
+            db.session.add(book)
+            db.session.commit()
+
+            book_author = BookAuthors(
+                id_author=author.id_author,
+                id_book=book.id_book
+            )
+            db.session.add(book_author)
+            db.session.commit()
+
+        return {'message': 'Author and books created successfully'}, 201
+    else:
+        return {'message': 'Access denied'}
 
 @app.route('/authors/<int:id_author>', methods=['PUT'])
 @login_required
