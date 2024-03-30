@@ -481,6 +481,33 @@ def delete_transaction(id_transaction):
     else:
         return {'message': 'Access denied'}, 403
 
+# @app.route('/transactions', methods=['POST'])
+# @login_required
+# def create_transaction():
+#     if current_user.user_type == 'admin':
+#         data = request.json
+        
+#         transaction = Transactions(
+#             id_admin=data['id_admin'],
+#             id_member=data['id_member'],
+#             borrowing_date=data['borrowing_date']
+#         )
+#         db.session.add(transaction)
+#         db.session.commit()
+        
+#         for detail in data['transaction_details']:
+#             transaction_detail = TransactionDetails(
+#                 id_transaction=transaction.id_transaction,
+#                 id_book=detail['id_book'],
+#                 return_date=detail['return_date']
+#             )
+#             db.session.add(transaction_detail)
+#         db.session.commit()
+        
+#         return {'message': 'Transaction created successfully'}, 201
+#     else:
+#         return {'message': 'Access denied'}
+
 @app.route('/transactions', methods=['POST'])
 @login_required
 def create_transaction():
@@ -495,13 +522,22 @@ def create_transaction():
         db.session.add(transaction)
         db.session.commit()
         
-        for detail in data['transaction_details']:
-            transaction_detail = TransactionDetails(
-                id_transaction=transaction.id_transaction,
-                id_book=detail['id_book'],
-                return_date=detail['return_date']
+        for book_data in data['books']:
+            book = Books(
+                title=book_data['title'],
+                year=book_data['year'],
+                total_pages=book_data['total_pages'],
+                id_category=book_data['id_category']
             )
-            db.session.add(transaction_detail)
+            db.session.add(book)
+            db.session.commit()
+            
+            transaction_details = TransactionDetails(
+                id_book=book.id_book,
+                id_transaction=transaction.id_transaction,
+                return_date=book_data['return_date']
+            )
+            db.session.add(transaction_details)
         db.session.commit()
         
         return {'message': 'Transaction created successfully'}, 201
