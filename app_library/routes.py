@@ -2,7 +2,7 @@ from flask import request
 from flask_login import login_user, logout_user, login_required, current_user
 from app_library.models import app, db, Categories, Books, Authors, BookAuthors, Users, Transactions, TransactionDetails
 from datetime import datetime
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -12,8 +12,8 @@ def login():
     username = request.headers.get('username')
     password = request.headers.get('password')
 
-    user = Users.query.filter_by(username=username).first()
-    if user and user.password == password:
+    user = Users.query.filter_by(username = username).first()
+    if user and check_password_hash(user.password, password):
         login_user(user)
         return {'message': 'Login successful'}
     else:
@@ -159,7 +159,6 @@ def create_book__with_authors():
             )
             db.session.add(book_author)
         db.session.commit()
-        
         return {'message': 'Book created successfully'}, 201
     else:
         return {'message': 'Access denied'}
@@ -209,7 +208,7 @@ def view_authors():
         })
     return {'authors': authors_list}
 
-@app.route('/author', methods=['POST'])
+@app.route('/authors', methods=['POST'])
 @login_required
 def create_author():
     if current_user.user_type == 'admin':
@@ -224,40 +223,40 @@ def create_author():
     else:
         return {'message': 'Access denied'}, 403
 
-@app.route('/authors', methods=['POST'])
-@login_required
-def create_author_with_books():
-    if current_user.user_type == 'admin':
-        data = request.json
+# @app.route('/authors', methods=['POST'])
+# @login_required
+# def create_author_with_books():
+#     if current_user.user_type == 'admin':
+#         data = request.json
 
-        author = Authors(
-            name=data['name'],
-            nationality=data['nationality'],
-            year_birth=data['year_birth']
-        )
-        db.session.add(author)
-        db.session.commit()
+#         author = Authors(
+#             name=data['name'],
+#             nationality=data['nationality'],
+#             year_birth=data['year_birth']
+#         )
+#         db.session.add(author)
+#         db.session.commit()
 
-        for book_data in data['books']:
-            book = Books(
-                title=book_data['title'],
-                year=book_data['year'],
-                total_pages=book_data['total_pages'],
-                id_category=book_data['id_category']
-            )
-            db.session.add(book)
-            db.session.commit()
+#         for book_data in data['books']:
+#             book = Books(
+#                 title=book_data['title'],
+#                 year=book_data['year'],
+#                 total_pages=book_data['total_pages'],
+#                 id_category=book_data['id_category']
+#             )
+#             db.session.add(book)
+#             db.session.commit()
 
-            book_author = BookAuthors(
-                id_author=author.id_author,
-                id_book=book.id_book
-            )
-            db.session.add(book_author)
-            db.session.commit()
+#             book_author = BookAuthors(
+#                 id_author=author.id_author,
+#                 id_book=book.id_book
+#             )
+#             db.session.add(book_author)
+#             db.session.commit()
 
-        return {'message': 'Author and books created successfully'}, 201
-    else:
-        return {'message': 'Access denied'}
+#         return {'message': 'Author and books created successfully'}, 201
+#     else:
+#         return {'message': 'Access denied'}
 
 @app.route('/authors/<int:id_author>', methods=['PUT'])
 @login_required
@@ -370,6 +369,7 @@ def view_users():
                 'id_user': el.id_user,
                 'username': el.username,
                 'user_type': el.user_type
+                # 'password': el.password
             })
         return {'users': users_list}
     else:
@@ -432,6 +432,25 @@ def delete_user(id_user):
     else:
         return {'message': 'Access denied'}, 403
 
+@app.route('/transactions_by_date', methods=['GET'])
+def list_transactions_by_date_range():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    transactions = Transactions.query.filter(Transactions.borrowing_date.between(start_date, end_date)).order_by(Transactions.id_transaction.desc()).all()
+
+    transaction_list = []
+    for transaction in transactions:
+        transaction_data = {
+            'id_transaction': transaction.id_transaction,
+            'id_admin': transaction.id_admin,
+            'id_member': transaction.id_member,
+            'borrowing_date': transaction.borrowing_date.strftime('%Y-%m-%d'),
+        }
+        transaction_list.append(transaction_data)
+
+    return {'transactions': transaction_list}
+
 @app.route('/transactions', methods=['GET'])
 @login_required
 def view_transactions():
@@ -459,7 +478,7 @@ def update_transaction(id_transaction):
     if current_user.user_type == 'admin':
         data = Transactions.query.get(id_transaction)
         if data:
-            data.id_member = request.form['id_member']
+            data.id_member = request.form['id_member'],
             db.session.commit()
             return {'message': 'Transaction updated successfully'}
         else:
@@ -481,33 +500,6 @@ def delete_transaction(id_transaction):
     else:
         return {'message': 'Access denied'}, 403
 
-# @app.route('/transactions', methods=['POST'])
-# @login_required
-# def create_transaction():
-#     if current_user.user_type == 'admin':
-#         data = request.json
-        
-#         transaction = Transactions(
-#             id_admin=data['id_admin'],
-#             id_member=data['id_member'],
-#             borrowing_date=data['borrowing_date']
-#         )
-#         db.session.add(transaction)
-#         db.session.commit()
-        
-#         for detail in data['transaction_details']:
-#             transaction_detail = TransactionDetails(
-#                 id_transaction=transaction.id_transaction,
-#                 id_book=detail['id_book'],
-#                 return_date=detail['return_date']
-#             )
-#             db.session.add(transaction_detail)
-#         db.session.commit()
-        
-#         return {'message': 'Transaction created successfully'}, 201
-#     else:
-#         return {'message': 'Access denied'}
-
 @app.route('/transactions', methods=['POST'])
 @login_required
 def create_transaction():
@@ -522,27 +514,70 @@ def create_transaction():
         db.session.add(transaction)
         db.session.commit()
         
-        for book_data in data['books']:
-            book = Books(
-                title=book_data['title'],
-                year=book_data['year'],
-                total_pages=book_data['total_pages'],
-                id_category=book_data['id_category']
-            )
-            db.session.add(book)
-            db.session.commit()
-            
-            transaction_details = TransactionDetails(
-                id_book=book.id_book,
+        for detail in data['transaction_details']:
+            transaction_detail = TransactionDetails(
                 id_transaction=transaction.id_transaction,
-                return_date=book_data['return_date']
+                id_book=detail['id_book'],
+                return_date=detail['return_date']
             )
-            db.session.add(transaction_details)
+            db.session.add(transaction_detail)
         db.session.commit()
         
         return {'message': 'Transaction created successfully'}, 201
     else:
         return {'message': 'Access denied'}
+
+# @app.route('/transactions', methods=['POST'])
+# @login_required
+# def create_transaction():
+#     if current_user.user_type == 'admin':
+#         data = request.json
+        
+#         transaction = Transactions(
+#             id_admin=data['id_admin'],
+#             id_member=data['id_member'],
+#             borrowing_date=data['borrowing_date']
+#         )
+#         db.session.add(transaction)
+#         db.session.commit()
+        
+#         for book_data in data['books']:
+#             book = Books(
+#                 title=book_data['title'],
+#                 year=book_data['year'],
+#                 total_pages=book_data['total_pages'],
+#                 id_category=book_data['id_category']
+#             )
+#             db.session.add(book)
+#             db.session.commit()
+            
+#             transaction_details = TransactionDetails(
+#                 id_book=book.id_book,
+#                 id_transaction=transaction.id_transaction,
+#                 return_date=book_data['return_date']
+#             )
+#             db.session.add(transaction_details)
+#         db.session.commit()
+        
+#         return {'message': 'Transaction created successfully'}, 201
+#     else:
+#         return {'message': 'Access denied'}
+
+@app.route('/late-transactions', methods=['GET'])
+def list_late_transactions():
+    late_transactions = TransactionDetails.query.filter(TransactionDetails.status_late == True).order_by(TransactionDetails.id_transaction_detail.desc()).all()
+    late_transaction_list = []
+    for transaction in late_transactions:
+        late_transaction_data = {
+            'id_transaction': transaction.id_transaction,
+            'id_book': transaction.id_book,
+            'return_date': transaction.return_date.strftime('%Y-%m-%d'),
+            'days_late': transaction.days_late,
+            'status_late': transaction.status_late
+        }
+        late_transaction_list.append(late_transaction_data)
+
+    return {'late_transactions': late_transaction_list}
 
 @app.route('/transaction_details', methods=['GET'])
 @login_required
@@ -568,6 +603,7 @@ def view_transaction_details():
                 'return_date': return_date,
                 'days_late': el.days_late,
                 'status_late': el.status_late,
+                'book_in_user': late_days,
                 'transaction': {
                     'id_admin': el.transaction.id_admin,
                     'id_member': el.transaction.id_member,
@@ -579,8 +615,7 @@ def view_transaction_details():
                 },
                 'book': {
                     'title': el.book.title
-                },
-                'total_late_days': late_days
+                }
             })
         return {'transaction_details': transaction_details_list}
     else:
@@ -593,7 +628,7 @@ def update_transaction_detail(id_transaction_detail):
         data = TransactionDetails.query.get(id_transaction_detail)
         if data:
             data.return_date = request.form['return_date'],
-            data.days_late = request.form['days_late'],
+            data.days_late = request.form['days_late'] if request.form['days_late'] else None,
             data.status_late = request.form['status_late'].lower() == 'true'
             db.session.commit()
             return {'message': 'Transaction detail updated successfully'}
